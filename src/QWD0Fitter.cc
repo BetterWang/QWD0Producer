@@ -63,8 +63,12 @@ QWD0Fitter::QWD0Fitter(const edm::ParameterSet& theParameters, edm::ConsumesColl
 }
 
 // method containing the algorithm for vertex reconstruction
+// K-Pi charge
 void QWD0Fitter::fitAll(const edm::Event& iEvent, const edm::EventSetup& iSetup,
-		reco::VertexCompositeCandidateCollection & theD0s)
+		reco::VertexCompositeCandidateCollection & d0pp,
+		reco::VertexCompositeCandidateCollection & d0mm,
+		reco::VertexCompositeCandidateCollection & d0pm,
+		reco::VertexCompositeCandidateCollection & d0mp)
 {
 	using std::vector;
 
@@ -113,45 +117,35 @@ void QWD0Fitter::fitAll(const edm::Event& iEvent, const edm::EventSetup& iSetup,
 	for (unsigned int trdx1 = 0; trdx1 < theTrackRefs.size(); ++trdx1) {
 		for (unsigned int trdx2 = trdx1 + 1; trdx2 < theTrackRefs.size(); ++trdx2) {
 
-			reco::TrackRef positiveTrackRef;
-			reco::TrackRef negativeTrackRef;
-			reco::TransientTrack* posTransTkPtr = nullptr;
-			reco::TransientTrack* negTransTkPtr = nullptr;
+			reco::TrackRef TrackRef1 = theTrackRefs[trdx1];
+			reco::TrackRef TrackRef2 = theTrackRefs[trdx2];
+			reco::TransientTrack* TransTkPtr1 = &theTransTracks[trdx1];
+			reco::TransientTrack* TransTkPtr2 = &theTransTracks[trdx2];
 
-			if (theTrackRefs[trdx1]->charge() < 0. && theTrackRefs[trdx2]->charge() > 0.) {
-				negativeTrackRef = theTrackRefs[trdx1];
-				positiveTrackRef = theTrackRefs[trdx2];
-				negTransTkPtr = &theTransTracks[trdx1];
-				posTransTkPtr = &theTransTracks[trdx2];
-			} else if (theTrackRefs[trdx1]->charge() > 0. && theTrackRefs[trdx2]->charge() < 0.) {
-				negativeTrackRef = theTrackRefs[trdx2];
-				positiveTrackRef = theTrackRefs[trdx1];
-				negTransTkPtr = &theTransTracks[trdx2];
-				posTransTkPtr = &theTransTracks[trdx1];
-			} else {
-//				std::cout << " --> " << __LINE__ << std::endl;
-				continue;
-			}
+			if (theTrackRefs[trdx1]->charge() == 0 or  theTrackRefs[trdx2]->charge() == 0) continue;
+			//int chIdx = (theTrackRefs[trdx1]->charge()>0?1:0)*2 + (theTrackRefs[trdx2]->charge()>0?1:0);
+			int charge1 = theTrackRefs[trdx1]->charge() > 0 ? 1:-1;
+			int charge2 = theTrackRefs[trdx2]->charge() > 0 ? 1:-1;
 
 			// measure distance between tracks at their closest approach
-			if (!posTransTkPtr->impactPointTSCP().isValid() || !negTransTkPtr->impactPointTSCP().isValid()) {
+			if (!TransTkPtr1->impactPointTSCP().isValid() || !TransTkPtr2->impactPointTSCP().isValid()) {
 				std::cout << " --> " << __LINE__ << std::endl;
 				continue;
 			}
-			FreeTrajectoryState const & posState = posTransTkPtr->impactPointTSCP().theState();
-			FreeTrajectoryState const & negState = negTransTkPtr->impactPointTSCP().theState();
+			FreeTrajectoryState const & State1 = TransTkPtr1->impactPointTSCP().theState();
+			FreeTrajectoryState const & State2 = TransTkPtr2->impactPointTSCP().theState();
 			ClosestApproachInRPhi cApp;
-			cApp.calculate(posState, negState);
+			cApp.calculate(State1, State2);
 			if (!cApp.status()) {
 				std::cout << " --> " << __LINE__ << " cApp.status() = " << cApp.status() << std::endl;
 				continue;
 			}
 			float dca = std::abs(cApp.distance());
 			if (dca > tkDCACut_) {
+				// XXX
 				std::cout << " --> " << __LINE__ << " dca = " << dca << std::endl;
 				continue;
 			}
-
 			// the POCA should at least be in the sensitive volume
 			GlobalPoint cxPt = cApp.crossingPoint();
 			if (sqrt(cxPt.x()*cxPt.x() + cxPt.y()*cxPt.y()) > 120. || std::abs(cxPt.z()) > 300.) {
@@ -160,21 +154,21 @@ void QWD0Fitter::fitAll(const edm::Event& iEvent, const edm::EventSetup& iSetup,
 			}
 
 			// the tracks should at least point in the same quadrant
-			TrajectoryStateClosestToPoint const & posTSCP = posTransTkPtr->trajectoryStateClosestToPoint(cxPt);
-			TrajectoryStateClosestToPoint const & negTSCP = negTransTkPtr->trajectoryStateClosestToPoint(cxPt);
-			if (!posTSCP.isValid() || !negTSCP.isValid()) {
+			TrajectoryStateClosestToPoint const & TSCP1 = TransTkPtr1->trajectoryStateClosestToPoint(cxPt);
+			TrajectoryStateClosestToPoint const & TSCP2 = TransTkPtr2->trajectoryStateClosestToPoint(cxPt);
+			if (!TSCP1.isValid() || !TSCP2.isValid()) {
 				std::cout << " --> " << __LINE__ << std::endl;
 				continue;
 			}
-			if (posTSCP.momentum().dot(negTSCP.momentum())  < 0) {
-//				std::cout << " --> " << __LINE__ << std::endl;
-//				continue;
+			if (TSCP1.momentum().dot(TSCP2.momentum())  < 0) {
+				std::cout << " --> " << __LINE__ << std::endl;
+				continue;
 			}
 
 			// calculate mPiPi
-			double totalE = sqrt(posTSCP.momentum().mag2() + piMassSquared) + sqrt(negTSCP.momentum().mag2() + piMassSquared);
+			double totalE = sqrt(TSCP1.momentum().mag2() + piMassSquared) + sqrt(TSCP2.momentum().mag2() + piMassSquared);
 			double totalESq = totalE*totalE;
-			double totalPSq = (posTSCP.momentum() + negTSCP.momentum()).mag2();
+			double totalPSq = (TSCP1.momentum() + TSCP2.momentum()).mag2();
 			double mass = sqrt(totalESq - totalPSq);
 			if (mass > mPiPiCut_) {
 				std::cout << " --> " << __LINE__ << " mPiPi = " << mass << std::endl;
@@ -184,8 +178,8 @@ void QWD0Fitter::fitAll(const edm::Event& iEvent, const edm::EventSetup& iSetup,
 			// Fill the vector of TransientTracks to send to KVF
 			std::vector<reco::TransientTrack> transTracks;
 			transTracks.reserve(2);
-			transTracks.push_back(*posTransTkPtr);
-			transTracks.push_back(*negTransTkPtr);
+			transTracks.push_back(*TransTkPtr1);
+			transTracks.push_back(*TransTkPtr2);
 
 			// create the vertex fitter object and vertex the tracks
 			TransientVertex theRecoVertex;
@@ -198,12 +192,13 @@ void QWD0Fitter::fitAll(const edm::Event& iEvent, const edm::EventSetup& iSetup,
 				theRecoVertex = theAdaptiveFitter.vertex(transTracks);
 			}
 			if (!theRecoVertex.isValid()) {
-//				std::cout << " --> " << __LINE__ << std::endl;
+				std::cout << " --> " << __LINE__ << " failed KalmanVertexFitter" << std::endl;
 				continue;
 			}
 
 			reco::Vertex theVtx = theRecoVertex;
 			if (theVtx.normalizedChi2() > vtxChi2Cut_) {
+				// XXX
 				std::cout << " --> " << __LINE__ << " theVtx.normalizedChi2() " << theVtx.normalizedChi2() << std::endl;
 				continue;
 			}
@@ -216,6 +211,7 @@ void QWD0Fitter::fitAll(const edm::Event& iEvent, const edm::EventSetup& iSetup,
 			double distMagXY = ROOT::Math::Mag(distVecXY);
 			double sigmaDistMagXY = sqrt(ROOT::Math::Similarity(totalCov, distVecXY)) / distMagXY;
 			if (distMagXY/sigmaDistMagXY < vtxDecaySigXYCut_) {
+				// XXX
 				std::cout << " --> " << __LINE__ << " distMagXY/sigmaDistMagXY = " << distMagXY/sigmaDistMagXY << std::endl;
 				continue;
 			}
@@ -225,55 +221,49 @@ void QWD0Fitter::fitAll(const edm::Event& iEvent, const edm::EventSetup& iSetup,
 			double distMagXYZ = ROOT::Math::Mag(distVecXYZ);
 			double sigmaDistMagXYZ = sqrt(ROOT::Math::Similarity(totalCov, distVecXYZ)) / distMagXYZ;
 			if (distMagXYZ/sigmaDistMagXYZ < vtxDecaySigXYZCut_) {
+				// XXX
 				std::cout << " --> " << __LINE__ << " distMagXYZ/sigmaDistMagXYZ = " << distMagXYZ/sigmaDistMagXYZ << std::endl;
 				continue;
 			}
 
 		// make sure the vertex radius is within the inner track hit radius
 		// comment out for missing TrackExtra
-//			if (innerHitPosCut_ > 0. && positiveTrackRef->innerOk()) {
-//				reco::Vertex::Point posTkHitPos = positiveTrackRef->innerPosition();
+//			if (innerHitPosCut_ > 0. && TrackRef1->innerOk()) {
+//				reco::Vertex::Point posTkHitPos = TrackRef1->innerPosition();
 //				double posTkHitPosD2 =  (posTkHitPos.x()-referencePos.x())*(posTkHitPos.x()-referencePos.x()) +
 //					(posTkHitPos.y()-referencePos.y())*(posTkHitPos.y()-referencePos.y());
 //				if (sqrt(posTkHitPosD2) < (distMagXY - sigmaDistMagXY*innerHitPosCut_)) continue;
 //			}
-//			if (innerHitPosCut_ > 0. && negativeTrackRef->innerOk()) {
-//				reco::Vertex::Point negTkHitPos = negativeTrackRef->innerPosition();
+//			if (innerHitPosCut_ > 0. && TrackRef2->innerOk()) {
+//				reco::Vertex::Point negTkHitPos = TrackRef2->innerPosition();
 //				double negTkHitPosD2 = (negTkHitPos.x()-referencePos.x())*(negTkHitPos.x()-referencePos.x()) +
 //					(negTkHitPos.y()-referencePos.y())*(negTkHitPos.y()-referencePos.y());
 //				if (sqrt(negTkHitPosD2) < (distMagXY - sigmaDistMagXY*innerHitPosCut_)) continue;
 //			}
 
-			std::auto_ptr<TrajectoryStateClosestToPoint> trajPlus;
-			std::auto_ptr<TrajectoryStateClosestToPoint> trajMins;
+			std::auto_ptr<TrajectoryStateClosestToPoint> traj1;
+			std::auto_ptr<TrajectoryStateClosestToPoint> traj2;
 			std::vector<reco::TransientTrack> theRefTracks;
 			if (theRecoVertex.hasRefittedTracks()) {
 				theRefTracks = theRecoVertex.refittedTracks();
 			}
 
 			if (useRefTracks_ && theRefTracks.size() > 1) {
-				reco::TransientTrack* thePositiveRefTrack = 0;
-				reco::TransientTrack* theNegativeRefTrack = 0;
-				for (std::vector<reco::TransientTrack>::iterator iTrack = theRefTracks.begin(); iTrack != theRefTracks.end(); ++iTrack) {
-					if (iTrack->track().charge() > 0.) {
-						thePositiveRefTrack = &*iTrack;
-					} else if (iTrack->track().charge() < 0.) {
-						theNegativeRefTrack = &*iTrack;
-					}
-				}
+				reco::TransientTrack* thePositiveRefTrack = &(theRefTracks[0]);
+				reco::TransientTrack* theNegativeRefTrack = &(theRefTracks[1]);
 				if (thePositiveRefTrack == 0 || theNegativeRefTrack == 0) continue;
-				trajPlus.reset(new TrajectoryStateClosestToPoint(thePositiveRefTrack->trajectoryStateClosestToPoint(vtxPos)));
-				trajMins.reset(new TrajectoryStateClosestToPoint(theNegativeRefTrack->trajectoryStateClosestToPoint(vtxPos)));
+				traj1.reset(new TrajectoryStateClosestToPoint(thePositiveRefTrack->trajectoryStateClosestToPoint(vtxPos)));
+				traj2.reset(new TrajectoryStateClosestToPoint(theNegativeRefTrack->trajectoryStateClosestToPoint(vtxPos)));
 			} else {
-				trajPlus.reset(new TrajectoryStateClosestToPoint(posTransTkPtr->trajectoryStateClosestToPoint(vtxPos)));
-				trajMins.reset(new TrajectoryStateClosestToPoint(negTransTkPtr->trajectoryStateClosestToPoint(vtxPos)));
+				traj1.reset(new TrajectoryStateClosestToPoint(TransTkPtr1->trajectoryStateClosestToPoint(vtxPos)));
+				traj2.reset(new TrajectoryStateClosestToPoint(TransTkPtr2->trajectoryStateClosestToPoint(vtxPos)));
 			}
 
-			if (trajPlus.get() == 0 || trajMins.get() == 0 || !trajPlus->isValid() || !trajMins->isValid()) continue;
+			if (traj1.get() == 0 || traj2.get() == 0 || !traj1->isValid() || !traj2->isValid()) continue;
 
-			GlobalVector positiveP(trajPlus->momentum());
-			GlobalVector negativeP(trajMins->momentum());
-			GlobalVector totalP(positiveP + negativeP);
+			GlobalVector P1(traj1->momentum());
+			GlobalVector P2(traj2->momentum());
+			GlobalVector totalP(P1 + P2);
 
 			// 2D pointing angle
 			double dx = theVtx.x()-referencePos.x();
@@ -282,6 +272,7 @@ void QWD0Fitter::fitAll(const edm::Event& iEvent, const edm::EventSetup& iSetup,
 			double py = totalP.y();
 			double angleXY = (dx*px+dy*py)/(sqrt(dx*dx+dy*dy)*sqrt(px*px+py*py));
 			if (angleXY < cosThetaXYCut_) {
+				// XXX
 				std::cout << " --> " << __LINE__ << " angleXY = " << angleXY << std::endl;
 				continue;
 			}
@@ -291,29 +282,23 @@ void QWD0Fitter::fitAll(const edm::Event& iEvent, const edm::EventSetup& iSetup,
 			double pz = totalP.z();
 			double angleXYZ = (dx*px+dy*py+dz*pz)/(sqrt(dx*dx+dy*dy+dz*dz)*sqrt(px*px+py*py+pz*pz));
 			if (angleXYZ < cosThetaXYZCut_) {
+				// XXX
 				std::cout << " --> " << __LINE__ << " angleXYZ = " << angleXYZ << std::endl;
 				continue;
 			}
 
-			// calculate total energy of D0 4 ways: assume it's a kShort, a Lambda, or a LambdaBar, D0.
-			double piPlusE = sqrt(positiveP.mag2() + piMassSquared);
-			double piMinusE = sqrt(negativeP.mag2() + piMassSquared);
-			double kaonPlusE = sqrt(positiveP.mag2() + kaonMassSquared);
-			double kaonMinusE = sqrt(negativeP.mag2() + kaonMassSquared);
-			double protonE = sqrt(positiveP.mag2() + protonMassSquared);
-			double antiProtonE = sqrt(negativeP.mag2() + protonMassSquared);
-			double kShortETot = piPlusE + piMinusE;
-			double lambdaEtot = protonE + piMinusE;
-			double lambdaBarEtot = antiProtonE + piPlusE;
-			double D0Etot = kaonMinusE + piPlusE;
-			double D0BarEtot = kaonPlusE + piMinusE;
+			// calculate total energy of D0
+			double piE1 = sqrt(P1.mag2() + piMassSquared);
+			double piE2 = sqrt(P2.mag2() + piMassSquared);
+			double kaonE1 = sqrt(P1.mag2() + kaonMassSquared);
+			double kaonE2 = sqrt(P2.mag2() + kaonMassSquared);
+
+			double	D0Epk = piE1 + kaonE2;
+			double	D0Ekp = kaonE1 + piE2;
 
 			// Create momentum 4-vectors for the 3 candidate types
-			const reco::Particle::LorentzVector kShortP4(totalP.x(), totalP.y(), totalP.z(), kShortETot);
-			const reco::Particle::LorentzVector lambdaP4(totalP.x(), totalP.y(), totalP.z(), lambdaEtot);
-			const reco::Particle::LorentzVector lambdaBarP4(totalP.x(), totalP.y(), totalP.z(), lambdaBarEtot);
-			const reco::Particle::LorentzVector D0P4(totalP.x(), totalP.y(), totalP.z(), D0Etot);
-			const reco::Particle::LorentzVector D0BarP4(totalP.x(), totalP.y(), totalP.z(), D0BarEtot);
+			const reco::Particle::LorentzVector D0P4pk(totalP.x(), totalP.y(), totalP.z(), D0Epk);
+			const reco::Particle::LorentzVector D0P4kp(totalP.x(), totalP.y(), totalP.z(), D0Ekp);
 
 			reco::Particle::Point vtx(theVtx.x(), theVtx.y(), theVtx.z());
 			const reco::Vertex::CovarianceMatrix vtxCov(theVtx.covariance());
@@ -321,68 +306,72 @@ void QWD0Fitter::fitAll(const edm::Event& iEvent, const edm::EventSetup& iSetup,
 			double vtxNdof(theVtx.ndof());
 
 			// Create the VertexCompositeCandidate object that will be stored in the Event
-			reco::VertexCompositeCandidate* theKshort = nullptr;
-			reco::VertexCompositeCandidate* theLambda = nullptr;
-			reco::VertexCompositeCandidate* theLambdaBar = nullptr;
-			reco::VertexCompositeCandidate* theD0 = nullptr;
-			reco::VertexCompositeCandidate* theD0Bar = nullptr;
-
-			theD0 = new reco::VertexCompositeCandidate(0, D0P4, vtx, vtxCov, vtxChi2, vtxNdof);
-			theD0Bar = new reco::VertexCompositeCandidate(0, D0BarP4, vtx, vtxCov, vtxChi2, vtxNdof);
+			auto theD0pk = new reco::VertexCompositeCandidate(0, D0P4pk, vtx, vtxCov, vtxChi2, vtxNdof);
+			auto theD0kp = new reco::VertexCompositeCandidate(0, D0P4kp, vtx, vtxCov, vtxChi2, vtxNdof);
 
 			// Create daughter candidates for the VertexCompositeCandidates
-			reco::RecoChargedCandidate thePiPlusCand(
-					1, reco::Particle::LorentzVector(positiveP.x(), positiveP.y(), positiveP.z(), piPlusE), vtx);
-			thePiPlusCand.setTrack(positiveTrackRef);
+			reco::RecoChargedCandidate thePiCand1(charge1, reco::Particle::LorentzVector(P1.x(), P1.y(), P1.z(), piE1), vtx);
+			thePiCand1.setTrack(TrackRef1);
 
-			reco::RecoChargedCandidate thePiMinusCand(
-					-1, reco::Particle::LorentzVector(negativeP.x(), negativeP.y(), negativeP.z(), piMinusE), vtx);
-			thePiMinusCand.setTrack(negativeTrackRef);
+			reco::RecoChargedCandidate thePiCand2(charge2, reco::Particle::LorentzVector(P2.x(), P2.y(), P2.z(), piE2), vtx);
+			thePiCand2.setTrack(TrackRef2);
 
-			reco::RecoChargedCandidate theProtonCand(
-					1, reco::Particle::LorentzVector(positiveP.x(), positiveP.y(), positiveP.z(), protonE), vtx);
-			theProtonCand.setTrack(positiveTrackRef);
+			reco::RecoChargedCandidate theKaonCand1(charge1, reco::Particle::LorentzVector(P1.x(), P1.y(), P1.z(), kaonE1), vtx);
+			theKaonCand1.setTrack(TrackRef1);
 
-			reco::RecoChargedCandidate theAntiProtonCand(
-					-1, reco::Particle::LorentzVector(negativeP.x(), negativeP.y(), negativeP.z(), antiProtonE), vtx);
-			theAntiProtonCand.setTrack(negativeTrackRef);
-
-			reco::RecoChargedCandidate theKaonPlusCand(
-					1, reco::Particle::LorentzVector(positiveP.x(), positiveP.y(), positiveP.z(), kaonPlusE), vtx);
-			theKaonPlusCand.setTrack(positiveTrackRef);
-
-			reco::RecoChargedCandidate theKaonMinusCand(
-					-1, reco::Particle::LorentzVector(negativeP.x(), negativeP.y(), negativeP.z(), kaonMinusE), vtx);
-			theKaonMinusCand.setTrack(negativeTrackRef);
+			reco::RecoChargedCandidate theKaonCand2(charge2, reco::Particle::LorentzVector(P2.x(), P2.y(), P2.z(), kaonE2), vtx);
+			theKaonCand2.setTrack(TrackRef2);
 
 			AddFourMomenta addp4;
 			// Store the daughter Candidates in the VertexCompositeCandidates if they pass mass cuts
-
-			if (doD0s_ ) {
-				theD0->addDaughter(thePiPlusCand);
-				theD0->addDaughter(theKaonMinusCand);
-				theD0->setPdgId(421);
-				addp4.set(*theD0);
-				std::cout << " --> " << __LINE__ << " theD0->mass() = " << theD0->mass() << std::endl;
-				if ( theD0->mass() < D0Mass + D0MassCut_ and theD0->mass() > D0Mass - D0MassCut_ ) {
-					theD0s.push_back(std::move(*theD0));
-				}
-				theD0Bar->addDaughter(theKaonPlusCand);
-				theD0Bar->addDaughter(thePiMinusCand);
-				theD0Bar->setPdgId(-421);
-				addp4.set(*theD0Bar);
-				std::cout << " --> " << __LINE__ << " theD0Bar->mass() = " << theD0Bar->mass() << std::endl;
-				if ( theD0Bar->mass() < D0Mass + D0MassCut_ and theD0Bar->mass() > D0Mass - D0MassCut_ ) {
-					theD0s.push_back(std::move(*theD0Bar));
-				}
+			theD0pk->addDaughter(thePiCand1);
+			theD0pk->addDaughter(theKaonCand2);
+			addp4.set(*theD0pk);
+			std::cout << " --> " << __LINE__ << " theD0pk->mass() = " << theD0pk->mass() << std::endl;
+			if ( theD0pk->mass() < D0Mass + D0MassCut_ and theD0pk->mass() > D0Mass - D0MassCut_ ) {
+				if ( charge1 > 0 and charge2 < 0 ) {
+					theD0pk->setPdgId(421);
+					d0mp.push_back(std::move(*theD0pk));
+				} else
+				if ( charge1 < 0 and charge2 > 0 ) {
+					theD0pk->setPdgId(-421);
+					d0pm.push_back(std::move(*theD0pk));
+				} else
+				if ( charge1 > 0 and charge2 > 0 ) {
+					theD0pk->setPdgId(81);
+					d0pp.push_back(std::move(*theD0pk));
+				} else
+				if ( charge1 < 0 and charge2 < 0 ) {
+					theD0pk->setPdgId(-81);
+					d0mm.push_back(std::move(*theD0pk));
+				} else
 			}
 
-			delete theKshort;
-			delete theLambda;
-			delete theLambdaBar;
-			delete theD0;
-			delete theD0Bar;
-			theKshort = theLambda = theLambdaBar = theD0 = theD0Bar = nullptr;
+			theD0kp->addDaughter(theKaonCand1);
+			theD0kp->addDaughter(thePiCand2);
+			addp4.set(*theD0kp);
+			std::cout << " --> " << __LINE__ << " theD0kp->mass() = " << theD0kp->mass() << std::endl;
+			if ( theD0kp->mass() < D0Mass + D0MassCut_ and theD0kp->mass() > D0Mass - D0MassCut_ ) {
+				if ( charge1 > 0 and charge2 < 0 ) {
+					theD0kp->setPdgId(-421);
+					d0mp.push_back(std::move(*theD0kp));
+				} else
+				if ( charge1 < 0 and charge2 > 0 ) {
+					theD0kp->setPdgId(421);
+					d0pm.push_back(std::move(*theD0kp));
+				} else
+				if ( charge1 > 0 and charge2 > 0 ) {
+					theD0kp->setPdgId(81);
+					d0pp.push_back(std::move(*theD0kp));
+				} else
+				if ( charge1 < 0 and charge2 < 0 ) {
+					theD0kp->setPdgId(-81);
+					d0mm.push_back(std::move(*theD0kp));
+				} else
+			}
+			delete theD0pk;
+			delete theD0kp;
+			theD0pk = theD0kp = nullptr;
 		}
 	}
 }

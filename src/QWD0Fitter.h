@@ -29,7 +29,10 @@ class dso_hidden QWD0Fitter {
 public:
 	QWD0Fitter(const edm::ParameterSet& theParams, edm::ConsumesCollector && iC);
 	void fitAll(const edm::Event& iEvent, const edm::EventSetup& iSetup,
-		reco::VertexCompositeCandidateCollection & d);
+		reco::VertexCompositeCandidateCollection & d0pp,
+		reco::VertexCompositeCandidateCollection & d0mm,
+		reco::VertexCompositeCandidateCollection & d0pm,
+		reco::VertexCompositeCandidateCollection & d0mp);
 
 private:
 	bool vertexFitter_;
