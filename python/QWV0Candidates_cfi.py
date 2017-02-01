@@ -1,6 +1,6 @@
 import FWCore.ParameterSet.Config as cms
 
-QWV0Candidates = cms.EDProducer("V0Producer",
+QWV0Candidates = cms.EDProducer("QWV0Producer",
 
    # which beamSpot to reference
    beamSpot = cms.InputTag('offlineBeamSpot'),
@@ -62,8 +62,8 @@ QWV0Candidates = cms.EDProducer("V0Producer",
    # -- cuts on the V0 candidate mass --
    # V0 mass window +- pdg value
    kShortMassCut = cms.double(0.07),
-   lambdaMassCut = cms.double(0.05)
-   D0MassCut = cms.double(0.1)
+   lambdaMassCut = cms.double(0.05),
+   D0MassCut = cms.double(0.2)
 
 )
 

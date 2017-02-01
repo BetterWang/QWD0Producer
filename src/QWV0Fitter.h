@@ -25,9 +25,9 @@
 #include "DataFormats/TrackingRecHit/interface/TrackingRecHit.h"
 #include "DataFormats/BeamSpot/interface/BeamSpot.h"
 
-class dso_hidden V0Fitter {
+class dso_hidden QWV0Fitter {
 public:
-	V0Fitter(const edm::ParameterSet& theParams, edm::ConsumesCollector && iC);
+	QWV0Fitter(const edm::ParameterSet& theParams, edm::ConsumesCollector && iC);
 	void fitAll(const edm::Event& iEvent, const edm::EventSetup& iSetup,
 		reco::VertexCompositeCandidateCollection & k,
 		reco::VertexCompositeCandidateCollection & l,

@@ -28,7 +28,7 @@ private:
 	bool doLambdas_;
 	bool doD0s_;
 
-	V0Fitter theVees;
+	QWV0Fitter theVees;
 };
 
 
@@ -54,7 +54,7 @@ void QWV0Producer::produce(edm::Event& iEvent, const edm::EventSetup& iSetup) {
 	using namespace edm;
 
 	// Create auto_ptr for each collection to be stored in the Event
-	std::auto_ptr< reco::VertexCompositeCandidateCollection > 
+	std::auto_ptr< reco::VertexCompositeCandidateCollection >
 		kShortCandidates( new reco::VertexCompositeCandidateCollection );
 	std::auto_ptr< reco::VertexCompositeCandidateCollection >
 		lambdaCandidates( new reco::VertexCompositeCandidateCollection );
@@ -68,16 +68,19 @@ void QWV0Producer::produce(edm::Event& iEvent, const edm::EventSetup& iSetup) {
 
 	// Write the collections to the Event
 	if ( doKShorts_ ) {
+//		std::cout << "put Ks" << std::endl;
 		kShortCandidates->shrink_to_fit();
 		iEvent.put( kShortCandidates, std::string("Kshort") );
 	}
 	if ( doLambdas_ ) {
+//		std::cout << "put Lambda" << std::endl;
 		lambdaCandidates->shrink_to_fit();
 		iEvent.put( lambdaCandidates, std::string("Lambda") );
 	}
 	if ( doD0s_ ) {
+		std::cout << "put D0 " << D0Candidates->size() << std::endl;
 		D0Candidates->shrink_to_fit();
-		iEvent.put( lambdaCandidates, std::string("D0") );
+		iEvent.put( D0Candidates, std::string("D0") );
 	}
 
 }
