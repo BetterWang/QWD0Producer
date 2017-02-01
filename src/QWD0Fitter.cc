@@ -1,4 +1,4 @@
-#include "QWV0Fitter.h"
+#include "QWD0Fitter.h"
 
 #include "TrackingTools/TransientTrack/interface/TransientTrackBuilder.h"
 #include "TrackingTools/Records/interface/TransientTrackRecord.h"
@@ -31,7 +31,7 @@ namespace {
 typedef ROOT::Math::SMatrix<double, 3, 3, ROOT::Math::MatRepSym<double, 3> > SMatrixSym3D;
 typedef ROOT::Math::SVector<double, 3> SVector3;
 
-QWV0Fitter::QWV0Fitter(const edm::ParameterSet& theParameters, edm::ConsumesCollector && iC)
+QWD0Fitter::QWD0Fitter(const edm::ParameterSet& theParameters, edm::ConsumesCollector && iC)
 {
 	token_beamSpot = iC.consumes<reco::BeamSpot>(theParameters.getParameter<edm::InputTag>("beamSpot"));
 	useVertex_ = theParameters.getParameter<bool>("useVertex");
@@ -40,13 +40,6 @@ QWV0Fitter::QWV0Fitter(const edm::ParameterSet& theParameters, edm::ConsumesColl
 	token_tracks = iC.consumes<reco::TrackCollection>(theParameters.getParameter<edm::InputTag>("trackRecoAlgorithm"));
 	vertexFitter_ = theParameters.getParameter<bool>("vertexFitter");
 	useRefTracks_ = theParameters.getParameter<bool>("useRefTracks");
-
-	// whether to reconstruct KShorts
-	doKShorts_ = theParameters.getParameter<bool>("doKShorts");
-	// whether to reconstruct Lambdas
-	doLambdas_ = theParameters.getParameter<bool>("doLambdas");
-	// whether to reconstruct D0s
-	doD0s_ = theParameters.getParameter<bool>("doD0s");
 
 	// cuts on initial track selection
 	tkChi2Cut_ = theParameters.getParameter<double>("tkChi2Cut");
@@ -65,16 +58,12 @@ QWV0Fitter::QWV0Fitter(const edm::ParameterSet& theParameters, edm::ConsumesColl
 	innerHitPosCut_ = theParameters.getParameter<double>("innerHitPosCut");
 	cosThetaXYCut_ = theParameters.getParameter<double>("cosThetaXYCut");
 	cosThetaXYZCut_ = theParameters.getParameter<double>("cosThetaXYZCut");
-	// cuts on the V0 candidate mass
-	kShortMassCut_ = theParameters.getParameter<double>("kShortMassCut");
-	lambdaMassCut_ = theParameters.getParameter<double>("lambdaMassCut");
+	// cuts on the D0 candidate mass
 	D0MassCut_ = theParameters.getParameter<double>("D0MassCut");
 }
 
 // method containing the algorithm for vertex reconstruction
-void QWV0Fitter::fitAll(const edm::Event& iEvent, const edm::EventSetup& iSetup,
-		reco::VertexCompositeCandidateCollection & theKshorts,
-		reco::VertexCompositeCandidateCollection & theLambdas,
+void QWD0Fitter::fitAll(const edm::Event& iEvent, const edm::EventSetup& iSetup,
 		reco::VertexCompositeCandidateCollection & theD0s)
 {
 	using std::vector;
@@ -241,7 +230,7 @@ void QWV0Fitter::fitAll(const edm::Event& iEvent, const edm::EventSetup& iSetup,
 			}
 
 		// make sure the vertex radius is within the inner track hit radius
-		// comment out for TrackExtra
+		// comment out for missing TrackExtra
 //			if (innerHitPosCut_ > 0. && positiveTrackRef->innerOk()) {
 //				reco::Vertex::Point posTkHitPos = positiveTrackRef->innerPosition();
 //				double posTkHitPosD2 =  (posTkHitPos.x()-referencePos.x())*(posTkHitPos.x()-referencePos.x()) +
@@ -306,7 +295,7 @@ void QWV0Fitter::fitAll(const edm::Event& iEvent, const edm::EventSetup& iSetup,
 				continue;
 			}
 
-			// calculate total energy of V0 4 ways: assume it's a kShort, a Lambda, or a LambdaBar, D0.
+			// calculate total energy of D0 4 ways: assume it's a kShort, a Lambda, or a LambdaBar, D0.
 			double piPlusE = sqrt(positiveP.mag2() + piMassSquared);
 			double piMinusE = sqrt(negativeP.mag2() + piMassSquared);
 			double kaonPlusE = sqrt(positiveP.mag2() + kaonMassSquared);
@@ -338,20 +327,8 @@ void QWV0Fitter::fitAll(const edm::Event& iEvent, const edm::EventSetup& iSetup,
 			reco::VertexCompositeCandidate* theD0 = nullptr;
 			reco::VertexCompositeCandidate* theD0Bar = nullptr;
 
-			if (doKShorts_) {
-				theKshort = new reco::VertexCompositeCandidate(0, kShortP4, vtx, vtxCov, vtxChi2, vtxNdof);
-			}
-			if (doLambdas_) {
-				if (positiveP.mag2() > negativeP.mag2()) {
-					theLambda = new reco::VertexCompositeCandidate(0, lambdaP4, vtx, vtxCov, vtxChi2, vtxNdof);
-				} else {
-					theLambdaBar = new reco::VertexCompositeCandidate(0, lambdaBarP4, vtx, vtxCov, vtxChi2, vtxNdof);
-				}
-			}
-			if (doD0s_) {
-					theD0 = new reco::VertexCompositeCandidate(0, D0P4, vtx, vtxCov, vtxChi2, vtxNdof);
-					theD0Bar = new reco::VertexCompositeCandidate(0, D0BarP4, vtx, vtxCov, vtxChi2, vtxNdof);
-			}
+			theD0 = new reco::VertexCompositeCandidate(0, D0P4, vtx, vtxCov, vtxChi2, vtxNdof);
+			theD0Bar = new reco::VertexCompositeCandidate(0, D0BarP4, vtx, vtxCov, vtxChi2, vtxNdof);
 
 			// Create daughter candidates for the VertexCompositeCandidates
 			reco::RecoChargedCandidate thePiPlusCand(
@@ -380,32 +357,6 @@ void QWV0Fitter::fitAll(const edm::Event& iEvent, const edm::EventSetup& iSetup,
 
 			AddFourMomenta addp4;
 			// Store the daughter Candidates in the VertexCompositeCandidates if they pass mass cuts
-			if (doKShorts_) {
-				theKshort->addDaughter(thePiPlusCand);
-				theKshort->addDaughter(thePiMinusCand);
-				theKshort->setPdgId(310);
-				addp4.set(*theKshort);
-				if (theKshort->mass() < kShortMass + kShortMassCut_ && theKshort->mass() > kShortMass - kShortMassCut_) {
-					theKshorts.push_back(std::move(*theKshort));
-				}
-			}
-			if (doLambdas_ && theLambda) {
-				theLambda->addDaughter(theProtonCand);
-				theLambda->addDaughter(thePiMinusCand);
-				theLambda->setPdgId(3122);
-				addp4.set( *theLambda );
-				if (theLambda->mass() < lambdaMass + lambdaMassCut_ && theLambda->mass() > lambdaMass - lambdaMassCut_) {
-					theLambdas.push_back(std::move(*theLambda));
-				}
-			} else if (doLambdas_ && theLambdaBar) {
-				theLambdaBar->addDaughter(theAntiProtonCand);
-				theLambdaBar->addDaughter(thePiPlusCand);
-				theLambdaBar->setPdgId(-3122);
-				addp4.set(*theLambdaBar);
-				if (theLambdaBar->mass() < lambdaMass + lambdaMassCut_ && theLambdaBar->mass() > lambdaMass - lambdaMassCut_) {
-					theLambdas.push_back(std::move(*theLambdaBar));
-				}
-			}
 
 			if (doD0s_ ) {
 				theD0->addDaughter(thePiPlusCand);

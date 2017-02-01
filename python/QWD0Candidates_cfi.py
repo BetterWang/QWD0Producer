@@ -1,6 +1,6 @@
 import FWCore.ParameterSet.Config as cms
 
-QWV0Candidates = cms.EDProducer("QWV0Producer",
+QWD0Candidates = cms.EDProducer("QWD0Producer",
 
    # which beamSpot to reference
    beamSpot = cms.InputTag('offlineBeamSpot'),
@@ -13,7 +13,7 @@ QWV0Candidates = cms.EDProducer("QWV0Producer",
    # which TrackCollection to use for vertexing
    trackRecoAlgorithm = cms.InputTag('generalTracks'),
 
-   # which V0s to reconstruct
+   # which D0s to reconstruct
    doKShorts = cms.bool(True),
    doLambdas = cms.bool(True),
    doD0s = cms.bool(True),
@@ -23,7 +23,7 @@ QWV0Candidates = cms.EDProducer("QWV0Producer",
    # False -> AdaptiveVertexFitter (not recommended)
    vertexFitter = cms.bool(True),
 
-   # use the refitted tracks returned from the KVF for V0Candidate kinematics
+   # use the refitted tracks returned from the KVF for D0Candidate kinematics
    # this is automatically set to False if using the AdaptiveVertexFitter
    useRefTracks = cms.bool(True),
 
@@ -52,15 +52,15 @@ QWV0Candidates = cms.EDProducer("QWV0Producer",
    # invariant mass of track pair - assuming both tracks are charged pions <
    mPiPiCut = cms.double(0.6),
    # check if either track has a hit radially inside the vertex position minus this number times the sigma of the vertex fit
-   # note: Set this to -1 to disable this cut, which MUST be done if you want to run V0Producer on the AOD track collection!
+   # note: Set this to -1 to disable this cut, which MUST be done if you want to run D0Producer on the AOD track collection!
    innerHitPosCut = cms.double(4.),
-   # cos(angleXY) between x and p of V0 candidate >
+   # cos(angleXY) between x and p of D0 candidate >
    cosThetaXYCut = cms.double(0.9998),
-   # cos(angleXYZ) between x and p of V0 candidate >
+   # cos(angleXYZ) between x and p of D0 candidate >
    cosThetaXYZCut = cms.double(-2.),
 
-   # -- cuts on the V0 candidate mass --
-   # V0 mass window +- pdg value
+   # -- cuts on the D0 candidate mass --
+   # D0 mass window +- pdg value
    kShortMassCut = cms.double(0.07),
    lambdaMassCut = cms.double(0.05),
    D0MassCut = cms.double(0.2)

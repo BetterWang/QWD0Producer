@@ -1,5 +1,5 @@
-#ifndef QWV0_FITTER_H
-#define QWV0_FITTER_H
+#ifndef QWD0_FITTER_H
+#define QWD0_FITTER_H
 
 #include "FWCore/Framework/interface/Event.h"
 #include "FWCore/Framework/interface/ESHandle.h"
@@ -25,20 +25,15 @@
 #include "DataFormats/TrackingRecHit/interface/TrackingRecHit.h"
 #include "DataFormats/BeamSpot/interface/BeamSpot.h"
 
-class dso_hidden QWV0Fitter {
+class dso_hidden QWD0Fitter {
 public:
-	QWV0Fitter(const edm::ParameterSet& theParams, edm::ConsumesCollector && iC);
+	QWD0Fitter(const edm::ParameterSet& theParams, edm::ConsumesCollector && iC);
 	void fitAll(const edm::Event& iEvent, const edm::EventSetup& iSetup,
-		reco::VertexCompositeCandidateCollection & k,
-		reco::VertexCompositeCandidateCollection & l,
 		reco::VertexCompositeCandidateCollection & d);
 
 private:
 	bool vertexFitter_;
 	bool useRefTracks_;
-	bool doKShorts_;
-	bool doLambdas_;
-	bool doD0s_;
 
 	// cuts on initial track selection
 	double tkChi2Cut_;
@@ -56,9 +51,7 @@ private:
 	double innerHitPosCut_;
 	double cosThetaXYCut_;
 	double cosThetaXYZCut_;
-	// cuts on the V0 candidate mass
-	double kShortMassCut_;
-	double lambdaMassCut_;
+	// cuts on the D0 candidate mass
 	double D0MassCut_;
 
 	edm::EDGetTokenT<reco::TrackCollection> token_tracks;
