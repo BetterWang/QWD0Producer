@@ -13,11 +13,6 @@ QWD0Candidates = cms.EDProducer("QWD0Producer",
    # which TrackCollection to use for vertexing
    trackRecoAlgorithm = cms.InputTag('generalTracks'),
 
-   # which D0s to reconstruct
-   doKShorts = cms.bool(True),
-   doLambdas = cms.bool(True),
-   doD0s = cms.bool(True),
-
    # which vertex fitting algorithm to use
    # True -> KalmanVertexFitter (recommended)
    # False -> AdaptiveVertexFitter (not recommended)
@@ -61,8 +56,6 @@ QWD0Candidates = cms.EDProducer("QWD0Producer",
 
    # -- cuts on the D0 candidate mass --
    # D0 mass window +- pdg value
-   kShortMassCut = cms.double(0.07),
-   lambdaMassCut = cms.double(0.05),
    D0MassCut = cms.double(0.2)
 
 )
