@@ -52,6 +52,7 @@ QWD0Fitter::QWD0Fitter(const edm::ParameterSet& theParameters, edm::ConsumesColl
 	vtxChi2Cut_ = theParameters.getParameter<double>("vtxChi2Cut");
 	vtxDecaySigXYZCut_ = theParameters.getParameter<double>("vtxDecaySigXYZCut");
 	vtxDecaySigXYCut_ = theParameters.getParameter<double>("vtxDecaySigXYCut");
+	vtxProb_ = theParameters.getParameter<double>("vtxProb");
 	// miscellaneous cuts
 	tkDCACut_ = theParameters.getParameter<double>("tkDCACut");
 	mPiPiCut_ = theParameters.getParameter<double>("mPiPiCut");
@@ -316,6 +317,11 @@ void QWD0Fitter::fitAll(const edm::Event& iEvent, const edm::EventSetup& iSetup,
 			// Create the VertexCompositeCandidate object that will be stored in the Event
 			auto theD0pk = new reco::VertexCompositeCandidate(0, D0P4pk, vtx, vtxCov, vtxChi2, vtxNdof);
 			auto theD0kp = new reco::VertexCompositeCandidate(0, D0P4kp, vtx, vtxCov, vtxChi2, vtxNdof);
+
+			if ( TMath::Prob(vtxChi2, vtxNdof) < vtxProb_ ) {
+				std::cout << " --> " << __LINE__ << " vertxProb = " << TMath::Prob(vtxChi2, vtxNdof) << std::endl;
+				continue;
+			}
 
 			// Create daughter candidates for the VertexCompositeCandidates
 			reco::RecoChargedCandidate thePiCand1(charge1, reco::Particle::LorentzVector(P1.x(), P1.y(), P1.z(), piE1), vtx);

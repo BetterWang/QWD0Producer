@@ -45,6 +45,7 @@ private:
 	double vtxChi2Cut_;
 	double vtxDecaySigXYCut_;
 	double vtxDecaySigXYZCut_;
+	double vtxProb_;
 	// miscellaneous cuts
 	double tkDCACut_;
 	double mPiPiCut_;

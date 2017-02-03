@@ -40,6 +40,8 @@ QWD0Candidates = cms.EDProducer("QWD0Producer",
    vtxDecaySigXYCut = cms.double(10.),
    # XYZ decay distance significance >
    vtxDecaySigXYZCut = cms.double(-1.),
+   # Vertex prob >
+   vtxProb = cms.double(0.05),
 
    # -- miscellaneous cuts --
    # POCA distance between tracks <
