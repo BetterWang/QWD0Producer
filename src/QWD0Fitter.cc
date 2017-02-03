@@ -126,7 +126,7 @@ void QWD0Fitter::fitAll(const edm::Event& iEvent, const edm::EventSetup& iSetup,
 
 			// measure distance between tracks at their closest approach
 			if (!TransTkPtr1->impactPointTSCP().isValid() || !TransTkPtr2->impactPointTSCP().isValid()) {
-				std::cout << " --> " << __LINE__ << std::endl;
+				std::cout << " --> " << __LINE__ << " impactPointTSCP failed" << std::endl;
 				continue;
 			}
 			FreeTrajectoryState const & State1 = TransTkPtr1->impactPointTSCP().theState();
@@ -138,11 +138,13 @@ void QWD0Fitter::fitAll(const edm::Event& iEvent, const edm::EventSetup& iSetup,
 				continue;
 			}
 			float dca = std::abs(cApp.distance());
-			if (dca > tkDCACut_) {
-				// XXX
-				std::cout << " --> " << __LINE__ << " dca = " << dca << std::endl;
-				continue;
-			}
+			std::cout << " --> " << __LINE__ << " dca = " << dca << std::endl;
+			// not applied
+//			if (dca > tkDCACut_) {
+//				// XXX
+//				std::cout << " --> " << __LINE__ << " dca = " << dca << std::endl;
+//				continue;
+//			}
 			// the POCA should at least be in the sensitive volume
 			GlobalPoint cxPt = cApp.crossingPoint();
 			if (sqrt(cxPt.x()*cxPt.x() + cxPt.y()*cxPt.y()) > 120. || std::abs(cxPt.z()) > 300.) {
@@ -167,10 +169,13 @@ void QWD0Fitter::fitAll(const edm::Event& iEvent, const edm::EventSetup& iSetup,
 			double totalESq = totalE*totalE;
 			double totalPSq = (TSCP1.momentum() + TSCP2.momentum()).mag2();
 			double mass = sqrt(totalESq - totalPSq);
-			if (mass > mPiPiCut_) {
-				std::cout << " --> " << __LINE__ << " mPiPi = " << mass << std::endl;
-				continue;
-			}
+			// not applied
+			// XXX
+			std::cout << " --> " << __LINE__ << " mPiPi = " << mass << std::endl;
+//			if (mass > mPiPiCut_) {
+//				std::cout << " --> " << __LINE__ << " mPiPi = " << mass << std::endl;
+//				continue;
+//			}
 
 			// Fill the vector of TransientTracks to send to KVF
 			std::vector<reco::TransientTrack> transTracks;
@@ -207,21 +212,25 @@ void QWD0Fitter::fitAll(const edm::Event& iEvent, const edm::EventSetup& iSetup,
 			SVector3 distVecXY(vtxPos.x()-referencePos.x(), vtxPos.y()-referencePos.y(), 0.);
 			double distMagXY = ROOT::Math::Mag(distVecXY);
 			double sigmaDistMagXY = sqrt(ROOT::Math::Similarity(totalCov, distVecXY)) / distMagXY;
-			if (distMagXY/sigmaDistMagXY < vtxDecaySigXYCut_) {
-				// XXX
-				std::cout << " --> " << __LINE__ << " distMagXY/sigmaDistMagXY = " << distMagXY/sigmaDistMagXY << std::endl;
-				continue;
-			}
+			// XXX not applied
+			std::cout << " --> " << __LINE__ << " distMagXY/sigmaDistMagXY = " << distMagXY/sigmaDistMagXY << std::endl;
+//			if (distMagXY/sigmaDistMagXY < vtxDecaySigXYCut_) {
+//				// XXX
+//				std::cout << " --> " << __LINE__ << " distMagXY/sigmaDistMagXY = " << distMagXY/sigmaDistMagXY << std::endl;
+//				continue;
+//			}
 
 			// 3D decay significance
 			SVector3 distVecXYZ(vtxPos.x()-referencePos.x(), vtxPos.y()-referencePos.y(), vtxPos.z()-referencePos.z());
 			double distMagXYZ = ROOT::Math::Mag(distVecXYZ);
 			double sigmaDistMagXYZ = sqrt(ROOT::Math::Similarity(totalCov, distVecXYZ)) / distMagXYZ;
-			if (distMagXYZ/sigmaDistMagXYZ < vtxDecaySigXYZCut_) {
-				// XXX
-				std::cout << " --> " << __LINE__ << " distMagXYZ/sigmaDistMagXYZ = " << distMagXYZ/sigmaDistMagXYZ << std::endl;
-				continue;
-			}
+			std::cout << " --> " << __LINE__ << " distMagXYZ/sigmaDistMagXYZ = " << distMagXYZ/sigmaDistMagXYZ << std::endl;
+			// not applied
+//			if (distMagXYZ/sigmaDistMagXYZ < vtxDecaySigXYZCut_) {
+//				// XXX
+//				std::cout << " --> " << __LINE__ << " distMagXYZ/sigmaDistMagXYZ = " << distMagXYZ/sigmaDistMagXYZ << std::endl;
+//				continue;
+//			}
 
 		// make sure the vertex radius is within the inner track hit radius
 		// comment out for missing TrackExtra
@@ -278,11 +287,13 @@ void QWD0Fitter::fitAll(const edm::Event& iEvent, const edm::EventSetup& iSetup,
 			double dz = theVtx.z()-referencePos.z();
 			double pz = totalP.z();
 			double angleXYZ = (dx*px+dy*py+dz*pz)/(sqrt(dx*dx+dy*dy+dz*dz)*sqrt(px*px+py*py+pz*pz));
-			if (angleXYZ < cosThetaXYZCut_) {
-				// XXX
-				std::cout << " --> " << __LINE__ << " angleXYZ = " << angleXYZ << std::endl;
-				continue;
-			}
+			// not applied
+			std::cout << " --> " << __LINE__ << " angleXYZ = " << angleXYZ << std::endl;
+//			if (angleXYZ < cosThetaXYZCut_) {
+//				// XXX
+//				std::cout << " --> " << __LINE__ << " angleXYZ = " << angleXYZ << std::endl;
+//				continue;
+//			}
 
 			// calculate total energy of D0
 			double piE1 = sqrt(P1.mag2() + piMassSquared);
