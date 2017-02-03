@@ -65,10 +65,7 @@ QWD0Fitter::QWD0Fitter(const edm::ParameterSet& theParameters, edm::ConsumesColl
 // method containing the algorithm for vertex reconstruction
 // K-Pi charge
 void QWD0Fitter::fitAll(const edm::Event& iEvent, const edm::EventSetup& iSetup,
-		reco::VertexCompositeCandidateCollection & d0pp,
-		reco::VertexCompositeCandidateCollection & d0mm,
-		reco::VertexCompositeCandidateCollection & d0pm,
-		reco::VertexCompositeCandidateCollection & d0mp)
+		reco::VertexCompositeCandidateCollection & d0s)
 {
 	using std::vector;
 
@@ -331,20 +328,17 @@ void QWD0Fitter::fitAll(const edm::Event& iEvent, const edm::EventSetup& iSetup,
 			if ( theD0pk->mass() < D0Mass + D0MassCut_ and theD0pk->mass() > D0Mass - D0MassCut_ ) {
 				if ( charge1 > 0 and charge2 < 0 ) {
 					theD0pk->setPdgId(421);
-					d0mp.push_back(std::move(*theD0pk));
 				} else
 				if ( charge1 < 0 and charge2 > 0 ) {
 					theD0pk->setPdgId(-421);
-					d0pm.push_back(std::move(*theD0pk));
 				} else
 				if ( charge1 > 0 and charge2 > 0 ) {
 					theD0pk->setPdgId(81);
-					d0pp.push_back(std::move(*theD0pk));
 				} else
 				if ( charge1 < 0 and charge2 < 0 ) {
 					theD0pk->setPdgId(-81);
-					d0mm.push_back(std::move(*theD0pk));
-				} else
+				}
+				d0s.push_back(std::move(*theD0pk));
 			}
 
 			theD0kp->addDaughter(theKaonCand1);
@@ -354,20 +348,17 @@ void QWD0Fitter::fitAll(const edm::Event& iEvent, const edm::EventSetup& iSetup,
 			if ( theD0kp->mass() < D0Mass + D0MassCut_ and theD0kp->mass() > D0Mass - D0MassCut_ ) {
 				if ( charge1 > 0 and charge2 < 0 ) {
 					theD0kp->setPdgId(-421);
-					d0mp.push_back(std::move(*theD0kp));
 				} else
 				if ( charge1 < 0 and charge2 > 0 ) {
 					theD0kp->setPdgId(421);
-					d0pm.push_back(std::move(*theD0kp));
 				} else
 				if ( charge1 > 0 and charge2 > 0 ) {
 					theD0kp->setPdgId(81);
-					d0pp.push_back(std::move(*theD0kp));
 				} else
 				if ( charge1 < 0 and charge2 < 0 ) {
 					theD0kp->setPdgId(-81);
-					d0mm.push_back(std::move(*theD0kp));
-				} else
+				}
+				d0s.push_back(std::move(*theD0kp));
 			}
 			delete theD0pk;
 			delete theD0kp;
